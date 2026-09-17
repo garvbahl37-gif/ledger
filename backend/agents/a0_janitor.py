@@ -30,6 +30,11 @@ logger = logging.getLogger(__name__)
 # ~2.0M (659,087 x 3), so the default sits between them.
 MAX_ANALYSIS_CELLS = int(os.getenv("MAX_ANALYSIS_CELLS", 1_000_000))
 
+# Checked before parsing, because that is where the memory is spent. Roughly the
+# file size that expands into MAX_ANALYSIS_CELLS for a typical mixed table; the
+# cell check after the load is what decides exactly.
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", 40_000_000))
+
 _DOMAIN_HINTS = {
     "medical":    ["bp_", "systolic", "diastolic", "glucose", "cholesterol", "bmi", "age", "diagnosis", "icd"],
     "financial":  ["revenue", "profit", "salary", "income", "price", "cost", "credit", "loan", "balance"],
@@ -99,6 +104,24 @@ def run(ledger: Ledger, file_bytes: bytes, filename: str) -> Ledger:
     with timed_agent(ledger.session_id, "A0_JANITOR") as ctx:
         ledger.advance_stage(PipelineStage.JANITOR)
         start = time.perf_counter()
+
+        # ── 0. Refuse before parsing ───────────────────────────────────────
+        # This has to come before read_csv, not after it. Parsing is where the
+        # memory actually goes — a CSV expands several times over as a DataFrame,
+        # object columns worst of all — so a cell count taken afterwards is
+        # measured only once the cost it is meant to prevent has been paid.
+        #
+        # The bytes are already buffered by the framework at this point, so this
+        # bounds the expansion rather than the upload. A hard cap on the request
+        # body belongs at the HTTP layer and is not something this agent can do.
+        if len(file_bytes) > MAX_UPLOAD_BYTES:
+            raise ValueError(
+                f"This file is {len(file_bytes) / 1e6:.1f}MB, past the "
+                f"{MAX_UPLOAD_BYTES / 1e6:.0f}MB this deployment can parse without "
+                f"running out of memory — a table costs several times its file "
+                f"size once loaded. Upload a subset or drop columns you are not "
+                f"testing."
+            )
 
         # ── 1. Load file ───────────────────────────────────────────────────
         if filename.endswith(".xlsx") or filename.endswith(".xls"):
