@@ -16,6 +16,34 @@
 
 ---
 
+## Live deployment
+
+| | |
+|---|---|
+| **App** | **https://ledger-analyst.vercel.app** |
+| Engine API | https://ledger-engine-z9d4.onrender.com |
+| Health check | https://ledger-engine-z9d4.onrender.com/api/health |
+
+Upload a CSV or link a public one, and the pipeline streams back as it runs.
+A finished analysis exports as a print-ready PDF, a standalone HTML report, or a
+runnable Jupyter notebook.
+
+Two things to know before judging a first run. The engine is on a free instance
+that sleeps when idle, so the first request after a quiet period waits 40-60
+seconds for a cold start; everything after it is quick. And sessions are held in
+memory, so a restart or redeploy clears them — a shared session link survives a
+page reload but not a deploy.
+
+No dataset to hand? These are public and work as they are:
+
+```
+https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv
+https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv
+https://raw.githubusercontent.com/mwaskom/seaborn-data/master/mpg.csv
+```
+
+---
+
 ## The Problem We Solve
 
 Every existing "chat with your CSV" tool has the same critical flaw: the LLM sees all the data, proposes tests, runs them, and picks the significant ones to report. This is **textbook p-hacking** — the most common cause of irreproducible scientific findings.
@@ -361,9 +389,17 @@ Please read [AGENTIC_ARCHITECTURE.md](./AGENTIC_ARCHITECTURE.md) before contribu
 
 ---
 
+## Contributors
+
+- [kumardhruv88](https://github.com/kumardhruv88) — original engine, agent
+  architecture and synopsis
+- [garvbahl37-gif](https://github.com/garvbahl37-gif) — statistical correctness,
+  evaluation harness, interface, exports and deployment
+
 ## License
 
-MIT © 2026 [kumardhruv88](https://github.com/kumardhruv88)
+MIT © 2026 [kumardhruv88](https://github.com/kumardhruv88) and
+[garvbahl37-gif](https://github.com/garvbahl37-gif)
 
 ---
 
