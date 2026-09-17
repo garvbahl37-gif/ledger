@@ -10,6 +10,7 @@ Libraries: google-api-python-client, gspread
 Supported inputs:
 - Google Sheets URL (any sheet in the workbook)
 - Google Drive file URL (CSV/Excel files)
+- Any public http(s) URL to a CSV, TSV or Excel file
 - Sheet ID + tab name
 
 Returns: pandas DataFrame (same interface as file upload)
@@ -168,6 +169,124 @@ def fetch_sheet_with_service_account(
         raise RuntimeError(f"Service account auth failed: {e}")
 
 
+
+# ─── Direct CSV/Excel URLs ────────────────────────────────────────────────────
+
+# Fetching a user-supplied URL from the server is a server-side request forgery
+# vector: without these guards someone could point the engine at 169.254.169.254
+# and read cloud instance credentials, or at an internal service. Hence the
+# scheme allow-list, the private-address block, and the streamed size cap.
+MAX_REMOTE_BYTES = 250 * 1024 * 1024
+FETCH_TIMEOUT_S = 60
+
+
+def _assert_public_http_url(url: str) -> None:
+    """Reject anything that is not a public http(s) endpoint."""
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Only http and https URLs are supported, got '{parsed.scheme}'.")
+    host = parsed.hostname
+    if not host:
+        raise ValueError("That URL has no host.")
+
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        raise ValueError(f"Could not resolve '{host}'.")
+
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast):
+            raise ValueError(
+                f"'{host}' resolves to a non-public address ({ip}). "
+                "The engine only fetches from public hosts."
+            )
+
+
+def normalise_data_url(url: str) -> str:
+    """
+    Turn common 'page' URLs into the raw file they display.
+
+    People paste the link they were looking at, which for GitHub and Hugging Face
+    is an HTML page rather than the CSV. Rewriting is friendlier than refusing.
+    """
+    url = url.strip()
+    if "github.com" in url and "/blob/" in url:
+        return (url.replace("github.com", "raw.githubusercontent.com")
+                   .replace("/blob/", "/"))
+    if "huggingface.co" in url and "/blob/" in url:
+        return url.replace("/blob/", "/resolve/")
+    return url
+
+
+def fetch_direct_url(url: str) -> Tuple[bytes, str]:
+    """
+    Download a CSV/TSV/Excel file from a public URL.
+
+    Read in chunks against a hard byte cap so a very large or endless response
+    cannot exhaust the container's memory.
+    """
+    import urllib.request
+    from urllib.parse import unquote, urlparse
+
+    url = normalise_data_url(url)
+    _assert_public_http_url(url)
+
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Ledger/1.0 (statistical analysis engine)"},
+    )
+
+    chunks, total = [], 0
+    try:
+        with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_S) as response:
+            declared = response.headers.get("Content-Length")
+            if declared and int(declared) > MAX_REMOTE_BYTES:
+                raise ValueError(
+                    f"That file is {int(declared) / 1e6:.0f} MB, over the "
+                    f"{MAX_REMOTE_BYTES / 1e6:.0f} MB limit."
+                )
+            while True:
+                chunk = response.read(1 << 20)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > MAX_REMOTE_BYTES:
+                    raise ValueError(
+                        f"That file exceeds the {MAX_REMOTE_BYTES / 1e6:.0f} MB limit."
+                    )
+                chunks.append(chunk)
+    except ValueError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Could not download {url}: {e}")
+
+    content = b"".join(chunks)
+    if not content:
+        raise ValueError("That URL returned an empty file.")
+
+    name = unquote(urlparse(url).path.rsplit("/", 1)[-1]) or "remote_dataset.csv"
+    if not name.lower().endswith((".csv", ".tsv", ".txt", ".xlsx", ".xls")):
+        name += ".csv"
+
+    # A wrong URL usually returns an HTML error page with a 200, which would
+    # otherwise reach the janitor as a one-column table of markup.
+    head = content[:400].lstrip().lower()
+    if head.startswith(b"<!doctype html") or head.startswith(b"<html"):
+        raise ValueError(
+            "That URL returned a web page, not a data file. "
+            "Use the raw/download link."
+        )
+
+    logger.info("[DirectURL] Fetched %s (%.1f MB)", name, len(content) / 1e6)
+    return content, name
+
+
 # ─── Smart URL Router ─────────────────────────────────────────────────────────
 
 def fetch_from_url(url: str) -> Tuple[bytes, str]:
@@ -182,7 +301,10 @@ def fetch_from_url(url: str) -> Tuple[bytes, str]:
     elif 'drive.google.com' in url:
         df, filename = fetch_public_drive_csv(url)
     else:
-        raise ValueError(f"Unsupported URL format: {url}. Supported: Google Sheets, Google Drive.")
+        # Any other public http(s) URL is treated as a direct file. Returned as
+        # raw bytes rather than a DataFrame so the janitor does its own parsing
+        # and Excel files survive the trip intact.
+        return fetch_direct_url(url)
 
     # Convert DataFrame back to CSV bytes (same as file upload interface)
     csv_bytes = df.to_csv(index=False).encode('utf-8')
