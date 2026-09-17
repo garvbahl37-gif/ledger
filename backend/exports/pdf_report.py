@@ -532,12 +532,20 @@ def _entry_detail(pdf: LedgerPDF, e, full: bool) -> None:
 
     if not r:
         pdf.ln(1)
+        reason = (getattr(e, "failure_reason", None) or "").strip()
+        if reason:
+            # Say which one it was. "One group holds a single row" and "the
+            # generated code crashed" are different facts about the analysis,
+            # and a reader who cannot tell them apart cannot judge the run.
+            pdf.label("WHY NO VERDICT WAS REACHED")
+            pdf.ln(0.8)
+            pdf.para(reason, size=8.6, color=INK)
+            pdf.ln(1)
         pdf.para(
-            "The code for this hypothesis could not be made to run, so no verdict "
-            "was reached. It stays in the register and still counts toward the "
-            "correction, which is why the adjusted p-values elsewhere are as "
-            "conservative as they are.",
-            size=8.6, color=SLATE)
+            "No verdict was reached, so this entry carries no p-value. It stays "
+            "in the register and still counts toward the correction, which is why "
+            "the adjusted p-values elsewhere are as conservative as they are.",
+            size=8.4, color=SLATE)
         return
 
     # The claim, in the only words the reporter was licensed to use.

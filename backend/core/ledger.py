@@ -115,6 +115,12 @@ class HypothesisEntry(BaseModel):
     chart_spec: Optional[Dict[str, Any]] = None # Plotly JSON spec
     adversary_violations: List[AdversaryViolation] = []
     user_defined: bool = False                  # True if user supplied this hypothesis
+    # Why this entry reached no verdict. A registered hypothesis that cannot be
+    # adjudicated still counts toward the correction, so the reader is owed the
+    # reason — "one group holds a single row" and "the generated code crashed"
+    # are very different facts about the analysis, and without this they looked
+    # identical.
+    failure_reason: Optional[str] = None
 
 
 class DatasetMeta(BaseModel):

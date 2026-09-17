@@ -350,6 +350,7 @@ def get_report(session_id: str):
                 "statistical_result": h.statistical_result.dict() if h.statistical_result else None,
                 "chart_spec": h.chart_spec,
                 "repair_count": len(h.execution_attempts) - 1 if h.execution_attempts else 0,
+                "failure_reason": h.failure_reason,
             }
             for h in ledger.hypotheses
         ],

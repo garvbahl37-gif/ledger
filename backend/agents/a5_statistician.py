@@ -302,9 +302,13 @@ def _select_and_run_test(
                         stat, p, eta2, _effect_label(math.sqrt(eta2)), assumptions,
                     )
 
+                sizes = cat_s.value_counts().to_dict()
+                spread = ", ".join(f"{lv}: {n}" for lv, n in sorted(
+                    sizes.items(), key=lambda kv: -kv[1])[:6])
                 raise ValueError(
-                    f"[A5] {hypothesis.id}: {cat_s.name} has no two levels with at "
-                    f"least 3 observations of {num_s.name}."
+                    f"{cat_s.name} has no two groups with at least 3 values of "
+                    f"{num_s.name} to compare ({spread}). This is a limit of the "
+                    f"data, not of the test."
                 )
 
             # Both categorical → chi-square on the paired rows.
@@ -385,6 +389,7 @@ def run(ledger: Ledger) -> Ledger:
                 raw_p_values.append(raw_p)
             except Exception as e:
                 logger.error(f"[A5] Test failed for {hypothesis.id}: {e}")
+                hypothesis.failure_reason = str(e)
                 per_hypothesis_results.append({"h": hypothesis, "error": str(e)})
                 raw_p_values.append(1.0)
 
