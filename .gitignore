@@ -86,3 +86,8 @@ logs/
 # Playwright MCP screenshot artifacts
 .playwright-mcp/
 **/.playwright-mcp/
+
+# Vercel's project link. It lives at the repo root now that the project's
+# Root Directory is frontend/ and the CLI has to be run from here, so the
+# frontend/.gitignore entry no longer covers it.
+.vercel
