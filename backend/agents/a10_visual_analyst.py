@@ -14,7 +14,7 @@ ROLE: Generates a complete, beautiful data visualization dashboard
 """
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -180,6 +180,27 @@ def _correlation_heatmap(df: pd.DataFrame) -> Optional[dict]:
     return _to_json(fig)
 
 
+# A chart is for the eye, and no eye resolves 659,087 overplotted points. Past a
+# few tens of thousands the picture stops changing and only the cost keeps
+# growing: every point is serialised into the figure's JSON, held in memory and
+# then parsed again by the browser. A 669k-row upload OOM-killed the 512MB
+# instance here — A0 finished, A10 began, and the process was restarted mid-run.
+#
+# Only the presentational charts are sampled. Nothing A5 decides with is touched,
+# and the aggregate charts below (missingness, cardinality, correlation) still
+# read the whole frame, because those are cheap to compute exactly and it would
+# be wrong to estimate them.
+CHART_SAMPLE_MAX = 20_000
+
+
+def _for_charts(df: pd.DataFrame) -> Tuple[pd.DataFrame, bool]:
+    """Down-sample a frame for plotting. Deterministic, so the dashboard for a
+    given table is the same every time it is built."""
+    if len(df) <= CHART_SAMPLE_MAX:
+        return df, False
+    return df.sample(CHART_SAMPLE_MAX, random_state=0).sort_index(), True
+
+
 def _time_series_charts(df: pd.DataFrame) -> List[dict]:
     """Auto-detect temporal columns and plot time series."""
     charts = []
@@ -219,11 +240,17 @@ def run(ledger: Ledger) -> Ledger:
 
         logger.info(f"[A10] Generating dashboard for {df.shape}")
 
+        plot_df, sampled = _for_charts(df)
+        if sampled:
+            logger.info(
+                "[A10] Plotting a %d-row sample of %d rows; aggregates still "
+                "use the whole frame", len(plot_df), len(df))
+
         dashboard = VisualizationDashboard(
-            summary_stats_chart=_data_quality_chart(df),
-            distribution_charts=_distribution_charts(df),
-            correlation_heatmap=_correlation_heatmap(df),
-            time_series_charts=_time_series_charts(df),
+            summary_stats_chart=_data_quality_chart(df),      # exact, cheap
+            distribution_charts=_distribution_charts(plot_df),
+            correlation_heatmap=_correlation_heatmap(df),      # exact, cheap
+            time_series_charts=_time_series_charts(plot_df),
         )
 
         ledger.visualization_dashboard = dashboard

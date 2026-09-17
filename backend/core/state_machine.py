@@ -61,8 +61,17 @@ async def run_pipeline(
         ledger.agent_timings["A0"] = time.perf_counter() - start
 
         dataset = ledger.dataset
-        yield _make_event("A0_JANITOR", f"✅ Loaded {dataset.n_rows:,} rows × {dataset.n_cols} columns", {
+        _loaded = f"✅ Loaded {dataset.n_rows:,} rows × {dataset.n_cols} columns"
+        if dataset.n_duplicates_removed:
+            _loaded += (
+                f" — {dataset.n_duplicates_removed:,} duplicate "
+                f"{'row' if dataset.n_duplicates_removed == 1 else 'rows'} removed "
+                f"from {dataset.n_rows_raw:,}"
+            )
+        yield _make_event("A0_JANITOR", _loaded, {
             "rows": dataset.n_rows,
+            "rows_raw": dataset.n_rows_raw,
+            "duplicates_removed": dataset.n_duplicates_removed,
             "cols": dataset.n_cols,
             "filename": filename,
         })

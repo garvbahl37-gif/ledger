@@ -12,6 +12,7 @@ ROLE: The ultimate arbiter of truth.
 import json
 import logging
 import math
+import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -29,6 +30,16 @@ from observability.telemetry import timed_agent, log_hypothesis_event
 
 logger = logging.getLogger(__name__)
 
+# Phrases that name a correlation rather than a difference between groups.
+# "associated with" is deliberately absent: it is the wording used for a
+# contingency claim just as often as for a monotonic one.
+_CORRELATION_WORDING = re.compile(
+    r"\b(correlat\w*|positively|negatively|monotonic\w*|increas\w+ with|"
+    r"decreas\w+ with|rises? with|falls? with)\b", re.I)
+
+MAX_GROUPS = 20
+MIN_PER_GROUP = 30
+NOT_A_GROUPING = 200
 ALPHA = 0.05
 FDR_METHOD = "fdr_bh"  # Benjamini-Hochberg
 
@@ -271,21 +282,71 @@ def _select_and_run_test(
                 )
 
             a, b = paired[c1], paired[c2]
-            # Not is_numeric_dtype: an integer-coded category passes that and
-            # turns a group comparison into a correlation. See core.dtypes.
-            a_num = is_measurement(a)
-            b_num = is_measurement(b)
 
-            # Both numeric → correlation.
-            if a_num and b_num:
+            # Two questions, not one. "Is this stored as a number" decides what
+            # can be measured; "is this a measurement or a code" decides what the
+            # comparison means. Collapsing them either way goes wrong:
+            # is_numeric_dtype alone runs a correlation against a 0/1 column,
+            # while is_measurement alone demoted support_calls to a category and
+            # answered "do support calls differ between churned and retained
+            # customers" with a chi-square, discarding the ordering it was asking
+            # about.
+            a_stored, b_stored = (pd.api.types.is_numeric_dtype(a),
+                                  pd.api.types.is_numeric_dtype(b))
+            a_meas, b_meas = is_measurement(a), is_measurement(b)
+
+            # A hypothesis about correlation has already named its instrument.
+            # Spearman is a rank correlation, so it is valid on an ordered
+            # integer scale — a 1-5 rating or a count of calls — and a
+            # contingency table is not, having no notion of order at all.
+            asks_correlation = bool(_CORRELATION_WORDING.search(hypothesis.statement))
+
+            if a_stored and b_stored and (( a_meas and b_meas) or asks_correlation):
                 test_name, r, p, assumptions = _run_correlation_test(a.values, b.values)
                 return test_name, r, p, r, _effect_label(r), assumptions
 
-            # One numeric, one categorical → group comparison, either order.
-            if a_num != b_num:
+            # Exactly one side can be measured at all, so it is the thing being
+            # compared across the other's levels — whatever its cardinality.
+            one_sided = (a_stored != b_stored) or (a_meas != b_meas)
+            if one_sided:
+                a_num = a_stored if (a_stored != b_stored) else a_meas
                 num_s, cat_s = (a, b) if a_num else (b, a)
-                levels = [lv for lv in cat_s.unique()
-                          if len(num_s[cat_s == lv]) >= 3]
+                # One pass, not one per level. The previous comprehension ran a
+                # full boolean scan of the column for every distinct value, so a
+                # 48,938-level timestamp column over 659,087 rows meant roughly
+                # 3.2e10 element comparisons — about a minute per hypothesis, and
+                # enough allocation churn that the process was killed before the
+                # guard below ever got to refuse the column. paired has already
+                # dropped rows missing either side, so these counts are exactly
+                # the per-level sample sizes.
+                level_sizes = cat_s.value_counts()
+                level_sizes = level_sizes[level_sizes >= 3]
+                levels = level_sizes.index.tolist()
+
+                # What makes a k-group test meaningless is thin groups, not many
+                # of them. An earlier version of this guard keyed on the count
+                # alone and refused 56 US states holding ~493 rows each, which is
+                # a perfectly ordinary comparison, while telling the reader there
+                # was "too little in each to mean anything". Size decides.
+                if len(levels) > MAX_GROUPS:
+                    typical = int(level_sizes.median())
+                    if len(levels) > NOT_A_GROUPING:
+                        raise ValueError(
+                            f"{cat_s.name} takes {len(levels):,} distinct values "
+                            f"across {len(paired):,} rows. That is an identifier or "
+                            f"a timestamp rather than a grouping, and comparing "
+                            f"{len(levels):,} groups is not a question with an "
+                            f"interpretable answer."
+                        )
+                    if typical < MIN_PER_GROUP:
+                        raise ValueError(
+                            f"{cat_s.name} splits {len(paired):,} rows into "
+                            f"{len(levels)} groups holding about {typical} "
+                            f"{'row' if typical == 1 else 'rows'} each. That is too "
+                            f"few per group to detect anything but an enormous "
+                            f"difference, so no verdict is offered rather than a "
+                            f"p-value that would only reflect the sample size."
+                        )
 
                 if len(levels) >= 2:
                     groups = [num_s[cat_s == lv].values for lv in levels]
@@ -316,10 +377,23 @@ def _select_and_run_test(
             v = _cramers_v(chi2, len(paired), min(a.nunique(), b.nunique()))
             return test_name, chi2, p, v, _effect_label(v), assumptions
 
-    raise ValueError(
-        f"[A5] Cannot determine an appropriate test for {hypothesis.id}: "
-        f"columns={cols}, raw_keys={list(raw.keys())}"
-    )
+    # The old message pasted the whole raw_data dict's keys in — on one run that
+    # was every US state, inside a sentence meant to explain a failure.
+    named = ", ".join(cols) if cols else "no columns"
+    if len(cols) > 2:
+        detail = (
+            f"This hypothesis names {len(cols)} columns ({named}). Only "
+            f"two-column hypotheses can be adjudicated — a relationship between "
+            f"three or more variables needs a model, which is outside what this "
+            f"engine will claim."
+        )
+    else:
+        detail = (
+            f"No test fits the combination of columns this hypothesis names "
+            f"({named}); they may be missing from the table or of a type that "
+            f"has no applicable test."
+        )
+    raise ValueError(detail)
 
 
 def _build_licensed_text(

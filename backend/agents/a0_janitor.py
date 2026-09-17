@@ -107,9 +107,9 @@ def run(ledger: Ledger, file_bytes: bytes, filename: str) -> Ledger:
         logger.info(f"[A0] Loaded {filename}: {df.shape}")
 
         # ── 2. Remove fully duplicate rows ─────────────────────────────────
-        before = len(df)
+        n_rows_raw = len(df)
         df.drop_duplicates(inplace=True)
-        dropped = before - len(df)
+        dropped = n_rows_raw - len(df)
         if dropped:
             logger.info(f"[A0] Dropped {dropped} duplicate rows")
 
@@ -145,6 +145,8 @@ def run(ledger: Ledger, file_bytes: bytes, filename: str) -> Ledger:
             n_rows=len(df),
             n_cols=len(df.columns),
             size_bytes=len(file_bytes),
+            n_rows_raw=n_rows_raw,
+            n_duplicates_removed=dropped,
             columns=profiles,
         )
 

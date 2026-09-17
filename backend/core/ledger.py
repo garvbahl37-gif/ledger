@@ -125,9 +125,15 @@ class HypothesisEntry(BaseModel):
 
 class DatasetMeta(BaseModel):
     filename: str
-    n_rows: int
+    n_rows: int                                 # rows ANALYSED, after cleaning
     n_cols: int
     size_bytes: int
+    # What the file held before cleaning, and what A0 removed. Reporting only
+    # the post-clean count means the number in the report does not match the
+    # number in the reader's own file, with nothing to explain the gap — on a
+    # 669,113-row upload, 10,026 rows disappeared without a word.
+    n_rows_raw: Optional[int] = None
+    n_duplicates_removed: int = 0
     upload_time: datetime = Field(default_factory=datetime.utcnow)
     columns: List[ColumnProfile] = []
     rag_context: Optional[str] = None          # Retrieved from data dictionary

@@ -291,6 +291,13 @@ def _cover(pdf: LedgerPDF, counts: dict, entries: list) -> None:
         pdf.cell(CONTENT_W, 5,
                  pdf.t(f"{ds.n_rows:,} rows  x  {ds.n_cols} columns"),
                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        if getattr(ds, "n_duplicates_removed", 0):
+            # Otherwise this count silently disagrees with the reader's file.
+            pdf.use("body", "", 8.2, MUTED)
+            pdf.cell(CONTENT_W, 4.4, pdf.t(
+                f"{ds.n_rows_raw:,} rows in the file; "
+                f"{ds.n_duplicates_removed:,} exact duplicates removed before analysis"),
+                new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # ── the seal ──────────────────────────────────────────────────────────────
     # The one loud element in the document. Everything else stays quiet.
@@ -735,6 +742,9 @@ def _colophon(pdf: LedgerPDF, entries: list) -> None:
     facts: List[Tuple[str, str]] = [
         ("Source table", ds.filename if ds else "--"),
         ("Shape", f"{ds.n_rows:,} rows x {ds.n_cols} columns" if ds else "--"),
+        ("Rows in the file", f"{ds.n_rows_raw:,}" if ds and ds.n_rows_raw else "--"),
+        ("Duplicates removed", f"{ds.n_duplicates_removed:,}"
+            if ds and ds.n_duplicates_removed else "none"),
         ("Registry hash", lg.registry_hash or "never sealed"),
         ("Sealed at", lg.registered_at.strftime("%d %B %Y %H:%M UTC")
             if lg.registered_at else "--"),

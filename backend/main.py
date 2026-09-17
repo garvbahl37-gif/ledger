@@ -368,7 +368,14 @@ def run_sql_query(session_id: str, request: SQLQueryRequest):
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
 
     if not hasattr(ledger, "_cleaned_df") or ledger._cleaned_df is None:
-        raise HTTPException(status_code=400, detail="No dataset loaded. Upload a file first.")
+        detail = (
+            "The table for this session is no longer held in memory — only the most "
+            "recent analyses keep theirs. The report, the register and every export "
+            "still work; re-run the file to query it again."
+            if ledger.hypotheses else
+            "No dataset loaded. Upload a file first."
+        )
+        raise HTTPException(status_code=400, detail=detail)
 
     ledger = run_sql(ledger, request.query)
     session_store.update(ledger)
