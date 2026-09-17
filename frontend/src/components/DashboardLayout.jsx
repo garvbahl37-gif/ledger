@@ -47,8 +47,8 @@ export default function DashboardLayout({ view, onNavigate, onExit, onOpenPalett
   return (
     <div className="flex min-h-screen bg-pearl">
       {/* ── Rail ─────────────────────────────────────────────── */}
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-silver bg-paper lg:flex">
-        <div className="flex h-14 items-center gap-2.5 border-b border-silver px-4">
+      <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col border-r border-silver/80 bg-mist/60 backdrop-blur-sm lg:flex">
+        <div className="flex h-[54px] items-center gap-2.5 border-b border-silver/70 px-4">
           <button
             type="button"
             onClick={onExit}
@@ -77,21 +77,27 @@ export default function DashboardLayout({ view, onNavigate, onExit, onOpenPalett
                 onClick={() => onNavigate(item.id)}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'group mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
-                  active && 'bg-brand-tint',
-                  !active && !locked && 'hover:bg-mist',
+                  'group relative mb-px flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-colors duration-150',
+                  active && 'bg-paper shadow-hair ring-1 ring-silver/70',
+                  !active && !locked && 'hover:bg-paper/70',
                   locked && 'cursor-not-allowed opacity-40',
                 )}
               >
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-0 top-1/2 h-[15px] w-[2.5px] -translate-y-1/2 rounded-r-full bg-brand"
+                  />
+                )}
                 <item.icon
                   size={15}
-                  className={cn('shrink-0', active ? 'text-brand-text' : 'text-slate')}
+                  className={cn('shrink-0 transition-colors', active ? 'text-brand-text' : 'text-slate/80')}
                   aria-hidden="true"
                 />
                 <span className="min-w-0 flex-1">
                   <span className={cn(
-                    'block truncate text-[13px] font-medium',
-                    active ? 'text-brand-text' : 'text-ink',
+                    'block truncate text-[13px] tracking-[-0.01em]',
+                    active ? 'font-semibold text-ink' : 'font-medium text-graphite',
                   )}>
                     {item.label}
                   </span>
@@ -110,9 +116,9 @@ export default function DashboardLayout({ view, onNavigate, onExit, onOpenPalett
         </nav>
 
         {/* Registry state — the one fact that is always worth surfacing */}
-        <div className="border-t border-silver p-3">
+        <div className="border-t border-silver/70 p-3">
           {frozen && hash ? (
-            <div className="rounded-lg bg-mist p-2.5 ring-1 ring-silver">
+            <div className="rounded-lg bg-paper p-2.5 shadow-hair ring-1 ring-silver/70">
               <div className="flex items-center gap-1.5">
                 <Lock size={11} className="text-error-text" aria-hidden="true" />
                 <span className="text-[10.5px] font-semibold tracking-wide text-graphite">
@@ -148,7 +154,7 @@ export default function DashboardLayout({ view, onNavigate, onExit, onOpenPalett
 
       {/* ── Main ─────────────────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-silver bg-paper/85 px-4 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-20 flex h-[54px] shrink-0 items-center justify-between gap-3 border-b border-silver/80 bg-pearl/80 px-4 backdrop-blur-xl sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -158,7 +164,7 @@ export default function DashboardLayout({ view, onNavigate, onExit, onOpenPalett
             >
               <ArrowLeft size={16} />
             </button>
-            <h1 className="truncate text-[15px] font-semibold tracking-tight text-ink">
+            <h1 className="truncate text-[14.5px] font-semibold tracking-[-0.022em] text-ink">
               {NAV.find((n) => n.id === view)?.label ?? 'Ledger'}
             </h1>
             <span className="hidden truncate text-[12.5px] text-slate sm:block">

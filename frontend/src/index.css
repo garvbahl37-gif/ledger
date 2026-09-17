@@ -77,14 +77,20 @@
   --color-a7: #e11d48;
 
   /* ── Type ─────────────────────────────────────────────────── */
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 
   /* ── Elevation — one soft grey family, used sparingly ────── */
   --shadow-hair:  0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-card:  0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
-  --shadow-lift:  0 12px 32px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
-  --shadow-float: 0 24px 64px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-card:  0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px -4px rgba(15, 23, 42, 0.06);
+  --shadow-lift:  0 2px 4px rgba(15, 23, 42, 0.03), 0 12px 28px -8px rgba(15, 23, 42, 0.10);
+  --shadow-float: 0 4px 8px rgba(15, 23, 42, 0.04), 0 24px 56px -12px rgba(15, 23, 42, 0.16);
+
+  /* One radius scale. Four unrelated values were in use. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 
   /* ── Motion — fast, minimal, never bouncy ─────────────────── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -106,12 +112,30 @@
     font-weight: 400;
     letter-spacing: -0.011em;
     line-height: 1.6;
+    /* Geist ships contextual alternates and proper figures; both are off by
+       default in most browsers. */
+    font-feature-settings: 'cv11' 1, 'ss01' 1, 'calt' 1;
   }
 
+  /* Optical tracking: large type needs less letter-spacing than small type.
+     A single global value makes headings loose and captions cramped. */
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.2;
+    line-height: 1.12;
+    text-wrap: balance;
+  }
+  h1 { letter-spacing: -0.042em; }
+  h2 { letter-spacing: -0.036em; }
+  h3 { letter-spacing: -0.028em; }
+  h4, h5, h6 { letter-spacing: -0.022em; }
+
+  p { text-wrap: pretty; }
+
+  /* Numbers are the substance of this product, so they are set deliberately:
+     lining, tabular, slashed zero, and slightly tightened. */
+  code, kbd, samp, pre, .font-mono, .tnum {
+    font-feature-settings: 'tnum' 1, 'zero' 1, 'ss01' 1;
+    letter-spacing: -0.012em;
   }
 
   /* Every number in a statistics product must align in a column. */

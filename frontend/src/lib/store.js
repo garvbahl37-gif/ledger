@@ -2,6 +2,26 @@ import { create } from 'zustand'
 import * as api from './api'
 import { AGENTS, agentForStage, stageIndex } from './agents'
 
+/**
+ * The session id is kept in localStorage so a reload does not throw away a
+ * finished analysis.
+ *
+ * Without this the store is memory-only: someone runs a 90-second analysis,
+ * navigates to Ask, reloads, and every screen that depends on the report is
+ * empty with no route back except running it again. Only the id is stored —
+ * the report itself is re-fetched, so nothing goes stale.
+ */
+const SESSION_KEY = 'ledger.sessionId'
+
+export function rememberSession(id) {
+  try { id ? localStorage.setItem(SESSION_KEY, id) : localStorage.removeItem(SESSION_KEY) }
+  catch { /* private mode; the session simply will not survive a reload */ }
+}
+
+export function recallSession() {
+  try { return localStorage.getItem(SESSION_KEY) } catch { return null }
+}
+
 const idleAgents = () =>
   Object.fromEntries(AGENTS.map((a) => [a.key, { status: 'IDLE', message: '', durationS: null }]))
 
@@ -30,6 +50,7 @@ export const useSession = create((set, get) => ({
   telemetry: null,
 
   activeClaim: null,      // hypothesis id the reader clicked through from
+  expired: false,         // a remembered session the engine no longer has
   chat: [],
   chatPending: false,
   sql: null,
@@ -43,12 +64,14 @@ export const useSession = create((set, get) => ({
     sessionId: null, stage: 'INIT', running: false, error: null, source: null,
     agents: idleAgents(), log: [], hypotheses: [], registryHash: null, frozen: false,
     report: null, telemetry: null, activeClaim: null, chat: [], sql: null, abort: null,
+    expired: false,
   }),
 
   ensureSession: async () => {
     const existing = get().sessionId
     if (existing) return existing
     const { session_id } = await api.createSession()
+    rememberSession(session_id)
     set({ sessionId: session_id })
     return session_id
   },
@@ -154,7 +177,7 @@ export const useSession = create((set, get) => ({
    * after that the link resolves to nothing and says so.
    */
   resume: async (sessionId) => {
-    set({ sessionId, reportLoading: true, error: null })
+    set({ sessionId, reportLoading: true, error: null, expired: false })
     try {
       const report = await api.getReport(sessionId)
       const entries = report.ledger_entries ?? []
@@ -172,13 +195,20 @@ export const useSession = create((set, get) => ({
           AGENTS.map((a) => [a.key, { status: 'DONE', message: '', durationS: report.agent_timings?.[a.key] ?? null }]),
         ),
       })
+      rememberSession(sessionId)
       get().loadTelemetry()
       return true
     } catch (err) {
+      // 404 and 400 both mean the engine no longer holds this session, which is
+      // ordinary after a restart rather than an error worth alarming anyone
+      // about. Forget it so the next load starts clean.
+      const gone = err?.status === 404 || err?.status === 400
+      rememberSession(null)
       set({
         reportLoading: false,
-        error: `That session could not be loaded: ${err.message}`,
         sessionId: null,
+        expired: gone,
+        error: gone ? null : `That session could not be loaded: ${err.message}`,
       })
       return false
     }
