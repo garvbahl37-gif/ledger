@@ -86,7 +86,7 @@ export default function PipelineFilm() {
     <section
       ref={host}
       id="how-it-runs"
-      className="scroll-mt-[64px] w-full bg-[#0f172a] px-[24px] py-[84px]"
+      className="scroll-mt-[62px] w-full border-y border-rule bg-[#0b1220] px-[22px] py-[92px] md:px-[44px]"
       aria-label="How Ledger works"
     >
       <div className="mx-auto max-w-[900px]">
