@@ -93,7 +93,13 @@
   --color-a7: #e11d48;
 
   /* ── Type ─────────────────────────────────────────────────── */
-  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* To try another face, change this line and the matching <link> in
+     index.html. Alternatives that suit an instrument on ink:
+       'Instrument Sans'      quieter, more neutral
+       'Bricolage Grotesque'  editorial, more character
+       'IBM Plex Sans'        scientific provenance, pairs with IBM Plex Mono
+       'Archivo'              sturdier, wider, good very large */
+  --font-sans: 'Space Grotesk', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 
   /* ── Elevation — one soft grey family, used sparingly ────── */
@@ -130,7 +136,7 @@
     line-height: 1.6;
     /* Geist ships contextual alternates and proper figures; both are off by
        default in most browsers. */
-    font-feature-settings: 'cv11' 1, 'ss01' 1, 'calt' 1;
+    font-feature-settings: 'ss01' 1, 'ss02' 1, 'calt' 1;
   }
 
   /* Optical tracking: large type needs less letter-spacing than small type.
@@ -140,9 +146,9 @@
     line-height: 1.12;
     text-wrap: balance;
   }
-  h1 { letter-spacing: -0.042em; }
-  h2 { letter-spacing: -0.036em; }
-  h3 { letter-spacing: -0.028em; }
+  h1 { letter-spacing: -0.048em; }
+  h2 { letter-spacing: -0.04em; }
+  h3 { letter-spacing: -0.03em; }
   h4, h5, h6 { letter-spacing: -0.022em; }
 
   p { text-wrap: pretty; }
