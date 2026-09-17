@@ -178,6 +178,7 @@ def fetch_sheet_with_service_account(
 # scheme allow-list, the private-address block, and the streamed size cap.
 MAX_REMOTE_BYTES = 250 * 1024 * 1024
 FETCH_TIMEOUT_S = 60
+MAX_REDIRECTS = 5
 
 
 def _assert_public_http_url(url: str) -> None:
@@ -224,53 +225,107 @@ def normalise_data_url(url: str) -> str:
     return url
 
 
+def _peer_is_public(response) -> bool:
+    """
+    Check the address the socket actually connected to.
+
+    Validating the hostname before connecting is not sufficient on its own: DNS
+    can return a public address to the check and a private one to the connection
+    a moment later (rebinding). Inspecting the live peer closes that window,
+    because this is the address the data actually came from.
+    """
+    import ipaddress
+    try:
+        sock = response.raw._connection.sock          # urllib3 internals
+        peer = sock.getpeername()[0]
+    except Exception:
+        return True          # cannot introspect; the pre-flight check stands
+    try:
+        ip = ipaddress.ip_address(peer)
+    except ValueError:
+        return True
+    return not (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast)
+
+
 def fetch_direct_url(url: str) -> Tuple[bytes, str]:
     """
     Download a CSV/TSV/Excel file from a public URL.
 
-    Read in chunks against a hard byte cap so a very large or endless response
-    cannot exhaust the container's memory.
+    Redirects are followed by hand, one hop at a time, because the library
+    default is to follow them silently: a permitted public URL answering 302
+    Location: http://169.254.169.254/ would otherwise walk straight past the
+    pre-flight check. Every hop is re-validated, the peer address is verified
+    after connecting, and the body is read in chunks against a hard cap.
     """
-    import urllib.request
-    from urllib.parse import unquote, urlparse
+    import requests
+    from urllib.parse import unquote, urljoin, urlparse
 
-    url = normalise_data_url(url)
-    _assert_public_http_url(url)
+    current = normalise_data_url(url)
+    response = None
 
-    request = urllib.request.Request(
-        url,
-        headers={"User-Agent": "Ledger/1.0 (statistical analysis engine)"},
-    )
+    for _hop in range(MAX_REDIRECTS + 1):
+        _assert_public_http_url(current)
+        try:
+            response = requests.get(
+                current,
+                stream=True,
+                allow_redirects=False,           # validate each hop ourselves
+                timeout=FETCH_TIMEOUT_S,
+                headers={"User-Agent": "Ledger/1.0 (statistical analysis engine)"},
+            )
+        except requests.RequestException as e:
+            raise RuntimeError(f"Could not download {current}: {e}")
+
+        if not _peer_is_public(response):
+            response.close()
+            raise ValueError(
+                "That host resolved to a non-public address at connection time. "
+                "The engine only fetches from public hosts."
+            )
+
+        if response.is_redirect or response.is_permanent_redirect:
+            location = response.headers.get("Location")
+            response.close()
+            if not location:
+                raise RuntimeError(f"{current} redirected without a destination.")
+            current = urljoin(current, location)
+            continue
+        break
+    else:
+        raise RuntimeError(f"Too many redirects (more than {MAX_REDIRECTS}).")
+
+    if response.status_code != 200:
+        response.close()
+        raise RuntimeError(f"{current} returned HTTP {response.status_code}.")
+
+    declared = response.headers.get("Content-Length")
+    if declared and declared.isdigit() and int(declared) > MAX_REMOTE_BYTES:
+        response.close()
+        raise ValueError(
+            f"That file is {int(declared) / 1e6:.0f} MB, over the "
+            f"{MAX_REMOTE_BYTES / 1e6:.0f} MB limit."
+        )
 
     chunks, total = [], 0
     try:
-        with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_S) as response:
-            declared = response.headers.get("Content-Length")
-            if declared and int(declared) > MAX_REMOTE_BYTES:
+        for chunk in response.iter_content(chunk_size=1 << 20):
+            if not chunk:
+                continue
+            total += len(chunk)
+            if total > MAX_REMOTE_BYTES:
                 raise ValueError(
-                    f"That file is {int(declared) / 1e6:.0f} MB, over the "
-                    f"{MAX_REMOTE_BYTES / 1e6:.0f} MB limit."
+                    f"That file exceeds the {MAX_REMOTE_BYTES / 1e6:.0f} MB limit."
                 )
-            while True:
-                chunk = response.read(1 << 20)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > MAX_REMOTE_BYTES:
-                    raise ValueError(
-                        f"That file exceeds the {MAX_REMOTE_BYTES / 1e6:.0f} MB limit."
-                    )
-                chunks.append(chunk)
-    except ValueError:
-        raise
-    except Exception as e:
-        raise RuntimeError(f"Could not download {url}: {e}")
+            chunks.append(chunk)
+    finally:
+        response.close()
 
     content = b"".join(chunks)
     if not content:
         raise ValueError("That URL returned an empty file.")
 
-    name = unquote(urlparse(url).path.rsplit("/", 1)[-1]) or "remote_dataset.csv"
+    name = unquote(urlparse(current).path.rsplit("/", 1)[-1]) or "remote_dataset.csv"
     if not name.lower().endswith((".csv", ".tsv", ".txt", ".xlsx", ".xls")):
         name += ".csv"
 
