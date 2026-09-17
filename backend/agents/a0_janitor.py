@@ -10,6 +10,7 @@ ROLE: Cleans raw CSVs/Excel files before analysis begins.
      - Duplicate removal
 """
 import io
+import os
 import json
 import logging
 import time
@@ -23,6 +24,11 @@ from core.llm_client import call_llm
 from observability.telemetry import timed_agent
 
 logger = logging.getLogger(__name__)
+
+# Rows x columns the container can carry through the whole pipeline. The free
+# 512MB instance handles ~0.5M cells comfortably (53,794 x 10) and is killed at
+# ~2.0M (659,087 x 3), so the default sits between them.
+MAX_ANALYSIS_CELLS = int(os.getenv("MAX_ANALYSIS_CELLS", 1_000_000))
 
 _DOMAIN_HINTS = {
     "medical":    ["bp_", "systolic", "diastolic", "glucose", "cholesterol", "bmi", "age", "diagnosis", "icd"],
@@ -112,6 +118,29 @@ def run(ledger: Ledger, file_bytes: bytes, filename: str) -> Ledger:
         dropped = n_rows_raw - len(df)
         if dropped:
             logger.info(f"[A0] Dropped {dropped} duplicate rows")
+
+        # ── 2b. Refuse a table this container cannot finish ────────────────
+        # Not a statistical limit, a memory one. A 659,087 x 3 table gets through
+        # profiling, proposal and the freeze, then the executor runs generated
+        # pandas over the full frame per hypothesis and the 512MB instance is
+        # OOM-killed part-way through — the stream dies mid-run and the session
+        # goes with it, which reads as a crash with no explanation.
+        #
+        # Sampling instead would be worse than refusing: it silently changes what
+        # the p-values describe, and every claim in the report would be about a
+        # subset while naming the whole file. So the limit is stated up front.
+        # Raise MAX_ANALYSIS_CELLS on an instance with more memory.
+        cells = len(df) * len(df.columns)
+        if cells > MAX_ANALYSIS_CELLS:
+            raise ValueError(
+                f"This table is {len(df):,} rows x {len(df.columns)} columns "
+                f"({cells / 1e6:.1f}M cells), past the {MAX_ANALYSIS_CELLS / 1e6:.1f}M "
+                f"this deployment can analyse without running out of memory. "
+                f"Analysing a sample instead would change what the results mean "
+                f"while still naming the whole file, so it is not done silently. "
+                f"Upload a subset, drop columns you are not testing, or run the "
+                f"engine somewhere with more memory."
+            )
 
         # ── 3. Normalize column names ──────────────────────────────────────
         df.columns = [c.strip().lower().replace(" ", "_").replace("-", "_") for c in df.columns]
