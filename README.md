@@ -16,33 +16,6 @@
 
 ---
 
-## What it does
-
-Ask a spreadsheet enough questions and one of them will look interesting by pure
-luck. Ledger writes its questions down first, seals the list, then checks every
-one of them — so it cannot quietly drop the questions it did not like the answer
-to.
-
-![How a run decides what it is allowed to say](docs/media/how-it-runs.gif)
-
-Six questions go in. Two hold up. The other four could easily be coincidence, so
-they are reported as tested-and-not-supported rather than dropped, because the
-correction was computed across all six.
-
-### A run, start to finish
-
-Below is an actual recording of the deployed system analysing a 1,400-row table:
-eight agents, the registry sealing with its hash, and the verdict. Nothing here
-is a mock-up.
-
-![The pipeline running live](docs/media/live-run.gif)
-
-Note the badges on each agent. The stages that decide what is true — the
-profiler, the registrar, the statistician — carry **NO MODEL**. The language
-model proposes and phrases; it never adjudicates.
-
----
-
 ## The Problem We Solve
 
 Every existing "chat with your CSV" tool has the same critical flaw: the LLM sees all the data, proposes tests, runs them, and picks the significant ones to report. This is **textbook p-hacking** — the most common cause of irreproducible scientific findings.
