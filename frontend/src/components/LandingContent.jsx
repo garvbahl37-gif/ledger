@@ -292,237 +292,223 @@ export default function LandingContent({ onEnter }) {
 
       <PipelineFilm />
 
-      {/* 4. PROBLEM STATEMENT */}
-      <section id="the-problem" className="scroll-mt-[64px] bg-[#ffffff] py-[110px] px-[24px] w-full">
-        <div className="max-w-[780px] mx-auto flex flex-col items-center text-center">
-          <span className="text-[11px] font-bold tracking-[0.14em] text-[#0d9488] uppercase mb-[20px] block">
-            The Problem
-          </span>
-          <h2 className="text-[clamp(36px,4.5vw,56px)] font-extrabold text-[#0f172a] tracking-[-0.03em] leading-[1.1] m-0 block">
-            The Multiple Comparisons Problem.
-          </h2>
-          <span className="text-[clamp(36px,4.5vw,56px)] font-extrabold text-[#0d9488] italic tracking-[-0.03em] leading-[1.1] mt-[4px] block">
-            Solved.
-          </span>
-          
-          <p className="mt-[28px] max-w-[620px] text-[17px] text-[#64748b] leading-[1.8] font-normal tracking-[-0.01em] text-center">
-            LLMs are eager to please. When handed a dataset and asked for insights,
-            they will test thousands of combinations and only report the statistically
-            significant ones — guaranteeing false discoveries. Ledger eliminates
-            p-hacking by explicitly separating hypothesis generation from testing,
-            enforced structurally by the pipeline architecture.
-          </p>
+      {/* 4. THE MEASURED RESULT */}
+      <section id="the-problem" className="scroll-mt-[64px] w-full bg-white px-[24px] py-[104px]">
+        <div className="mx-auto max-w-[1080px]">
+          <div className="grid gap-[56px] lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+            <div>
+              <h2 className="m-0 max-w-[15ch] text-[clamp(28px,3.4vw,40px)] font-bold leading-[1.12] text-[#0f172a]">
+                We tested this on 510 tables where we already knew the answer.
+              </h2>
+              <p className="mt-[18px] mb-0 max-w-[46ch] text-[16px] leading-[1.7] text-[#475569]">
+                Two hundred of them contained nothing at all. Every column drawn
+                independently, so the right number of findings was exactly zero, by
+                construction rather than by opinion.
+              </p>
+              <p className="mt-[14px] mb-0 max-w-[46ch] text-[16px] leading-[1.7] text-[#475569]">
+                An analyst that tests every pair and reports whatever clears the
+                usual threshold found something in four cases out of five. The same
+                tests, corrected once across the sealed list, found something in one
+                case in forty.
+              </p>
+            </div>
 
-          <div className="mt-[56px] mb-[56px] w-[64px] h-[2px] bg-gradient-to-r from-[#0d9488] to-[#99f6e4] rounded-[2px] self-center" />
-
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-0 w-full max-w-[640px] mx-auto border border-[#e2e8f0] rounded-[16px] overflow-hidden bg-white"
-          >
-            {[
-              { target: 14, label: "False findings by LLM agents on pure noise", prefix: "~", color: "#0d9488" },
-              { target: 0, label: "False findings by Ledger (NULLSET target)", prefix: "", color: "#ef4444" },
-              { target: 1.00, label: "Groundedness — every claim auditable", prefix: "", color: "#10b981", isFloat: true }
-            ].map((stat, i) => (
-              <div key={i} className="px-[24px] py-[32px] flex flex-col items-center text-center md:border-r border-b md:border-b-0 border-[#e2e8f0] last:border-0 transition-colors duration-200 hover:bg-[#f0fdfa]">
-                <div 
-                  className="text-[52px] font-extrabold tracking-[-0.04em] leading-[1] mb-[10px] tabular-nums"
-                  style={{ color: stat.color }}
-                >
-                  {stat.prefix}<Counter to={stat.target} duration={1.8} isFloat={stat.isFloat} delay={i * 0.2} />
-                </div>
-                <div className="text-[12px] font-medium text-[#64748b] leading-[1.5] max-w-[120px] text-center">
-                  {stat.label}
-                </div>
+            <div>
+              {/* Two measurements, set as a comparison rather than a card row. */}
+              <div className="border-t-2 border-[#0f172a]">
+                {[
+                  {
+                    label: 'Tables where a false finding was reported',
+                    a: '81.0%', b: '2.5%',
+                    aNote: 'testing everything, uncorrected',
+                    bNote: 'sealed list, corrected once',
+                  },
+                  {
+                    label: 'False findings per table',
+                    a: '2.20', b: '0.03',
+                    aNote: 'on data containing nothing',
+                    bNote: 'a 32-fold reduction',
+                  },
+                ].map((row) => (
+                  <div key={row.label} className="border-b border-[#e2e8f0] py-[22px]">
+                    <p className="m-0 mb-[14px] text-[13px] font-medium text-[#64748b]">
+                      {row.label}
+                    </p>
+                    <div className="flex items-end gap-[30px]">
+                      <div className="flex-1">
+                        <div className="font-mono text-[clamp(28px,3.6vw,40px)] font-medium leading-none tracking-[-0.07em] text-[#94a3b8]">
+                          {row.a}
+                        </div>
+                        <p className="m-0 mt-[8px] text-[12px] leading-[1.4] text-[#94a3b8]">{row.aNote}</p>
+                      </div>
+                      <div aria-hidden="true" className="mb-[18px] h-px w-[26px] bg-[#cbd5e1]" />
+                      <div className="flex-1">
+                        <div className="font-mono text-[clamp(28px,3.6vw,40px)] font-medium leading-none tracking-[-0.07em] text-[#0d9488]">
+                          {row.b}
+                        </div>
+                        <p className="m-0 mt-[8px] text-[12px] leading-[1.4] text-[#0f766e]">{row.bNote}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </motion.div>
+
+              <p className="mt-[20px] mb-0 text-[13px] leading-[1.6] text-[#64748b]">
+                Measured, not projected. Both arms run the same test-selection code
+                on the same tables, so the only thing that differs between them is
+                the discipline.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 5. FEATURE CARDS */}
-      <section id="how-it-works" className="scroll-mt-[64px] bg-[#f8fafc] py-[110px] px-[24px] w-full">
-        <div className="max-w-[1160px] mx-auto">
-          <div className="text-center mb-[64px]">
-            <span className="text-[11px] font-bold tracking-[0.14em] text-[#0d9488] uppercase mb-[16px] block">
-              How It Works
-            </span>
-            <h2 className="text-[clamp(32px,4vw,48px)] font-extrabold text-[#0f172a] tracking-[-0.03em] leading-[1.15] m-0">
-              Six Agents. One Auditable Truth.
-            </h2>
-          </div>
+      {/* 5. WHAT IS ACTUALLY DIFFERENT */}
+      <section id="how-it-works" className="scroll-mt-[64px] w-full bg-[#f8fafc] px-[24px] py-[104px]">
+        <div className="mx-auto max-w-[1080px]">
+          <h2 className="m-0 mb-[8px] max-w-[22ch] text-[clamp(28px,3.4vw,42px)] font-bold leading-[1.1] text-[#0f172a]">
+            Four things this does that other tools do not.
+          </h2>
+          <p className="m-0 mb-[44px] max-w-[52ch] text-[16px] leading-[1.7] text-[#475569]">
+            None of them are new ideas. Statisticians have argued for all four for
+            decades. What is new is a system that cannot ignore them.
+          </p>
 
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={{
-              visible: { transition: { staggerChildren: 0.08 } },
-              hidden: {}
-            }}
-            className="grid grid-cols-1 min-[900px]:grid-cols-2 lg:grid-cols-3 gap-[24px] w-full"
-          >
+          <div className="border-t border-[#e2e8f0]">
             {[
-              { icon: Lock, title: "Hypothesis Pre-registration", desc: "Hypotheses are frozen before any test executes. Post-hoc selection is structurally impossible — not just discouraged.", badge: "A3 REGISTRAR" },
-              { icon: BarChart2, title: "Benjamini–Hochberg FDR Control", desc: "Every test is corrected across the full session family. The system refuses to report a finding it cannot statistically support.", badge: "A5 STATISTICIAN" },
-              { icon: FileSearch, title: "Claim-Level Provenance", desc: "Every sentence in the report links to the exact code that ran, the values returned, and the test that licensed it. Unbacked narration is rejected.", badge: "A6 REPORTER" },
-              { icon: Shield, title: "Sandboxed Code Execution", desc: "LLM-generated pandas code runs in an isolated subprocess with import blocklist, resource limits, and zero socket access.", badge: "A4 EXECUTOR" },
-              { icon: RefreshCw, title: "Self-Improving Loop", desc: "A8 Meta-Agent mines LangSmith telemetry for failure patterns and generates prompt patches — improving accuracy without retraining weights.", badge: "A8 META-AGENT" },
-              { icon: Database, title: "DPDPA-Compliant Local Analysis", desc: "No data leaves your machine. Run on clinical, financial, and student data that cannot legally be uploaded to cloud services.", badge: "LOCAL FIRST" }
-            ].map((card, i) => (
-              <motion.div 
-                key={i}
-                variants={{
-                  hidden: { opacity: 0, y: 32 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } }
-                }}
-                className="group relative bg-white border border-[#e2e8f0] rounded-[20px] px-[28px] py-[32px] flex flex-col items-start text-left cursor-default transition-all duration-300 overflow-hidden hover:-translate-y-[6px] hover:border-[#99f6e4] hover:shadow-[0_20px_48px_rgba(13,148,136,0.1),0_4px_12px_rgba(13,148,136,0.06)]"
+              {
+                n: '01',
+                title: 'The questions are sealed before any test runs',
+                body: 'Adding one afterwards raises an error, not a warning. That is what makes the correction mean anything: the number it divides by was fixed before a single result existed.',
+              },
+              {
+                n: '02',
+                title: 'No language model decides what is true',
+                body: 'The step that picks the test contains no model at all. It checks whether the data is normal, whether the variances match, and lets those answers choose. You can read why it picked what it picked.',
+              },
+              {
+                n: '03',
+                title: 'Every question is reported, including the dull ones',
+                body: 'The ones that found nothing stay in the report. Quietly dropping them would shrink the list and make the threshold more forgiving for everything left.',
+              },
+              {
+                n: '04',
+                title: 'A sentence with no receipt cannot be written',
+                body: 'Each claim in the write-up links back to the code that produced it, the assumptions that were checked and the number that came out. Click any of them and read the whole chain.',
+              },
+            ].map((item) => (
+              <article
+                key={item.n}
+                className="grid gap-[10px] border-b border-[#e2e8f0] py-[30px] md:grid-cols-[64px_1fr_1.15fr] md:gap-[28px]"
               >
-                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#0d9488] to-[#99f6e4] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="w-[48px] h-[48px] bg-[#f0fdfa] rounded-[12px] flex items-center justify-center mb-[20px] border border-[#ccfbf1] transition-all duration-300 group-hover:bg-[#0d9488]">
-                  <card.icon className="w-[22px] h-[22px] text-[#0d9488] group-hover:text-white transition-colors duration-300" />
-                </div>
-                <h3 className="text-[16px] font-bold text-[#0f172a] tracking-[-0.02em] mb-[10px] leading-[1.3] text-left">
-                  {card.title}
+                <span className="font-mono text-[13px] text-[#94a3b8] md:pt-[5px]">{item.n}</span>
+                <h3 className="m-0 text-[19px] font-semibold leading-[1.25] text-[#0f172a]">
+                  {item.title}
                 </h3>
-                <p className="text-[14px] text-[#64748b] leading-[1.7] font-normal flex-grow">
-                  {card.desc}
-                </p>
-                <div className="mt-[20px] inline-flex items-center bg-[#f0fdfa] border border-[#99f6e4] rounded-[100px] px-[12px] py-[4px] text-[10px] font-bold text-[#0d9488] tracking-[0.08em] uppercase">
-                  {card.badge}
-                </div>
-              </motion.div>
+                <p className="m-0 text-[15px] leading-[1.65] text-[#475569]">{item.body}</p>
+              </article>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* 6. AGENT CARDS (Horizontal Auto-Scroll Carousel) */}
-      <section id="the-pipeline" className="scroll-mt-[64px] bg-white py-[100px] w-full overflow-hidden">
-        <div className="max-w-[780px] mx-auto mb-[56px] px-[24px] text-center">
-          <span className="text-[11px] font-semibold tracking-[0.14em] text-[#0d9488] uppercase block mb-[14px]">
-            The Pipeline
-          </span>
-          <h2 className="text-[clamp(26px,3vw,38px)] font-bold text-[#0f172a] tracking-[-0.03em] leading-[1.2] m-0 mb-[12px]">
-            The 6-Stage Autonomous State Machine
-          </h2>
-          <p className="text-[15px] font-normal text-[#94a3b8] leading-[1.6] tracking-[-0.01em]">
-            A rigid, inspectable LangGraph pipeline where every transition is a correctness property — not a suggestion.
-          </p>
-        </div>
+      {/* 6. WHAT YOU GET BACK */}
+      <section id="the-pipeline" className="scroll-mt-[64px] w-full bg-white px-[24px] py-[104px]">
+        <div className="mx-auto max-w-[1080px]">
+          <div className="grid gap-[44px] lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <h2 className="m-0 mb-[16px] max-w-[20ch] text-[clamp(28px,3.4vw,42px)] font-bold leading-[1.1] text-[#0f172a]">
+                You get the working, not just the answer.
+              </h2>
+              <p className="m-0 mb-[26px] max-w-[48ch] text-[16px] leading-[1.7] text-[#475569]">
+                Every run produces a report you can audit line by line, a notebook
+                that reruns the whole thing, and a hash that tells you whether
+                anything changed since last time.
+              </p>
+              <ul className="m-0 list-none p-0">
+                {[
+                  'A written report where each claim opens its own receipt',
+                  'A Jupyter notebook that reproduces every number',
+                  'A standalone HTML file with the ledger travelling beside the prose',
+                  'A hash to check one run against another',
+                ].map((line) => (
+                  <li key={line} className="flex gap-[12px] border-b border-[#f1f5f9] py-[11px] last:border-0">
+                    <span aria-hidden="true" className="mt-[9px] h-[5px] w-[5px] shrink-0 rounded-full bg-[#0d9488]" />
+                    <span className="text-[15px] leading-[1.5] text-[#334155]">{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-        <div className="relative w-full">
-          {/* Left Fade */}
-          <div className="absolute left-0 top-0 bottom-0 w-[80px] bg-gradient-to-r from-white to-transparent z-[2] pointer-events-none" />
-          {/* Right Fade */}
-          <div className="absolute right-0 top-0 bottom-0 w-[80px] bg-gradient-to-l from-white to-transparent z-[2] pointer-events-none" />
-
-          {/* Scrolling Track */}
-          <div className="flex gap-[20px] px-[80px] pt-[20px] pb-[32px] overflow-x-auto scroll-smooth cursor-grab active:cursor-grabbing hide-scrollbar animate-autoScroll hover:animate-pause">
-            <style dangerouslySetInnerHTML={{__html: `
-              .hide-scrollbar::-webkit-scrollbar { display: none; }
-              .hide-scrollbar { scrollbar-width: none; }
-              @keyframes autoScroll {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-50%); }
-              }
-              .animate-autoScroll {
-                animation: autoScroll 30s linear infinite;
-              }
-              .animate-autoScroll:hover {
-                animation-play-state: paused;
-              }
-            `}} />
-
-            {/* Duplicate the array for seamless loop */}
-            {[...pipelineStages, ...pipelineStages].map((stage, i) => (
-              <div 
-                key={i} 
-                className="group min-w-[260px] max-w-[260px] bg-white border border-[#e2e8f0] rounded-[18px] p-[24px_22px] flex flex-col gap-0 shrink-0 relative overflow-hidden transition-all duration-[280ms] ease-out cursor-default hover:-translate-y-[8px] hover:shadow-[0_20px_48px_rgba(13,148,136,0.13),0_4px_12px_rgba(0,0,0,0.06)] hover:border-[#99f6e4]"
-              >
-                {/* Top Accent Bar */}
-                <div 
-                  className="absolute top-0 left-0 right-0 h-[3px] rounded-[18px_18px_0_0]"
-                  style={{ backgroundColor: stage.color }}
-                />
-
-                {/* STAGE NUMBER + BADGE */}
-                <div className="flex items-center justify-between mb-[18px] mt-[6px]">
-                  <div 
-                    className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center text-[13px] font-bold tracking-[-0.02em]"
-                    style={{ backgroundColor: stage.numBg, color: stage.numColor }}
-                  >
-                    {stage.id}
-                  </div>
-                  <div 
-                    className="font-bold text-[9px] tracking-[0.08em] uppercase px-[9px] py-[3px] rounded-[100px] border"
-                    style={{ backgroundColor: stage.badgeBg, color: stage.badgeColor, borderColor: stage.badgeBorder }}
-                  >
-                    {stage.badge}
-                  </div>
-                </div>
-
-                {/* AGENT NAME */}
-                <h4 className="text-[15px] font-bold text-[#0f172a] tracking-[-0.03em] leading-[1.2] mb-[8px]">
-                  {stage.name}
-                </h4>
-
-                {/* DESCRIPTION */}
-                <p className="text-[12.5px] font-normal text-[#64748b] leading-[1.6] tracking-[-0.01em] flex-grow mb-[16px]">
-                  {stage.desc}
+            <figure className="m-0 rounded-[14px] border border-[#e2e8f0] bg-[#fcfcfd] p-[22px]">
+              <figcaption className="m-0 mb-[14px] text-[12.5px] text-[#64748b]">
+                One entry from a real run
+              </figcaption>
+              <div className="border-l-2 border-[#0d9488] pl-[14px]">
+                <p className="m-0 text-[14.5px] leading-[1.55] text-[#0f172a]">
+                  Tenure differs between churned and retained customers.
                 </p>
-
-                {/* INPUT -> OUTPUT */}
-                <div className="flex items-center gap-[6px] p-[8px_10px] bg-[#f8fafc] rounded-[8px] border border-[#f1f5f9]">
-                  <span className="text-[10px] font-medium text-[#94a3b8] font-mono whitespace-nowrap overflow-hidden text-ellipsis max-w-[85px]">
-                    {stage.in}
-                  </span>
-                  <span className="text-[11px] font-bold text-[#0d9488] shrink-0">
-                    →
-                  </span>
-                  <span className="text-[10px] font-semibold text-[#0d9488] font-mono whitespace-nowrap overflow-hidden text-ellipsis max-w-[95px]">
-                    {stage.out}
-                  </span>
-                </div>
               </div>
-            ))}
+              <dl className="m-0 mt-[18px] grid grid-cols-2 gap-x-[20px] gap-y-[13px]">
+                {[
+                  ['Test chosen', 'Mann-Whitney U'],
+                  ['Why that one', 'normality failed'],
+                  ['Corrected p', '7.8e-101'],
+                  ['Effect size', '-1.42, large'],
+                ].map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="m-0 text-[11px] text-[#94a3b8]">{k}</dt>
+                    <dd className="m-0 mt-[3px] font-mono text-[13px] text-[#0f172a]">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </figure>
           </div>
-          
-          {/* Connecting Dots below */}
-          <div className="flex justify-center items-center gap-[8px] mt-[8px]">
-            {pipelineStages.map((stage, i) => (
-              <React.Fragment key={i}>
-                <div className="w-[8px] h-[8px] rounded-full" style={{ backgroundColor: stage.color }} />
-                {i < pipelineStages.length - 1 && (
-                  <div className="w-[24px] h-[1px] bg-[#e2e8f0]" />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-
         </div>
       </section>
 
-      {/* 7. CTA FOOTER BANNER */}
-      <section className="bg-gradient-to-br from-[#0d9488] via-[#0f766e] to-[#134e4a] py-[80px] w-full">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <div className="text-[11px] uppercase tracking-[0.12em] text-white/70 font-semibold mb-4">Ready to Analyse?</div>
-          <h2 className="text-[40px] font-extrabold text-white leading-tight tracking-[-0.03em] mb-4">
-            Upload a CSV. Get an audited report in minutes.
+
+      {/* 7. CLOSE */}
+      <section className="w-full bg-[#0f172a] px-[24px] py-[96px]">
+        <div className="mx-auto max-w-[760px]">
+          <h2 className="m-0 max-w-[18ch] text-[clamp(30px,3.6vw,44px)] font-bold leading-[1.1] text-white">
+            Point it at a spreadsheet and see what it refuses to say.
           </h2>
-          <p className="text-[16px] text-white/75 leading-relaxed max-w-2xl mx-auto mb-10">
-            No API key for your data. No dark pattern. Every finding traceable.
+          <p className="mt-[18px] mb-[34px] max-w-[52ch] text-[16px] leading-[1.7] text-white/55">
+            Drop in a CSV, or paste a link to one. You will get a report where every
+            claim opens the code behind it, and the questions that found nothing
+            listed alongside the ones that did.
           </p>
-          <button onClick={onEnter} className="bg-white text-[#0d9488] rounded-xl px-[32px] py-[16px] text-[15px] font-bold hover:-translate-y-[2px] hover:shadow-[0_12px_32px_rgba(0,0,0,0.2)] transition-all duration-300 mb-8">
-            Upload Your First CSV →
-          </button>
-          <div className="flex flex-wrap items-center justify-center gap-6 text-[13px] font-medium text-white/85">
-            <span>✓ Free forever</span>
-            <span>✓ No signup required</span>
-            <span>✓ Data never leaves your device</span>
+
+          <div className="flex flex-wrap items-center gap-[14px]">
+            <button
+              onClick={onEnter}
+              className="rounded-[10px] bg-white px-[26px] py-[14px] text-[15px] font-semibold tracking-[-0.01em] text-[#0f172a] transition-colors duration-200 hover:bg-[#f0fdfa]"
+            >
+              Analyse a table
+            </button>
+            <a
+              href="https://github.com/garvbahl37-gif/Ledger_agent"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-[10px] border border-white/20 px-[26px] py-[14px] text-[15px] font-semibold tracking-[-0.01em] text-white/85 no-underline transition-colors duration-200 hover:border-white/45 hover:text-white"
+            >
+              Read the code
+            </a>
           </div>
+
+          {/*
+            The previous version of this claimed "Data never leaves your device",
+            which is not true of the hosted build: the table goes to the engine and
+            the engine calls a model. It is true only when you run it yourself
+            against a local model, so that is what it says now.
+          */}
+          <p className="mt-[30px] mb-0 max-w-[56ch] text-[13px] leading-[1.65] text-white/40">
+            Using the hosted version, your table is sent to our engine and column
+            summaries are sent to a language model. If the data cannot leave your
+            machine, run it locally against a local model. Both paths are in the
+            repository.
+          </p>
         </div>
       </section>
 
@@ -568,7 +554,7 @@ export default function LandingContent({ onEnter }) {
               <h4 className="text-white/[0.35] text-[10px] font-bold tracking-[0.12em] uppercase mb-[16px]">
                 Stack
               </h4>
-              {['FastAPI', 'LangGraph', 'Groq API', 'LangSmith', 'React + Vite', 'Supabase'].map(link => (
+              {['FastAPI', 'pandas + SciPy', 'statsmodels', 'Ollama', 'React + Vite', 'Plotly'].map(link => (
                 <a key={link} className="text-white/60 text-[13px] font-normal leading-[1] mb-[12px] block text-decoration-none cursor-pointer transition-colors duration-150 hover:text-white">
                   {link}
                 </a>

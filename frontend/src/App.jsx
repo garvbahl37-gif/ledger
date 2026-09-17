@@ -67,9 +67,11 @@ export default function App() {
     if (!id) return
     resumedRef.current = true
     resume(id).then((ok) => {
-      // Only steer someone to the report when they did not ask for a screen
-      // themselves; a ?session= link ending in #/ask means they want Ask.
-      if (ok && !viewFromHash()) navigateRef.current?.('report')
+      // Only a shared ?session= link may choose a screen, and only when the
+      // link did not name one itself. A session recalled from storage must not
+      // move anybody: someone opening the marketing page wants the marketing
+      // page, not to be thrown into last week's analysis.
+      if (ok && shared && !viewFromHash()) navigateRef.current?.('report')
     })
   }, [resume])
 
