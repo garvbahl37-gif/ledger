@@ -10,7 +10,7 @@ import Button from '../ui/Button'
 import { Card } from '../ui/Card'
 import BackendStatus from '../BackendStatus'
 
-const ACCEPT = '.csv,.tsv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+const ACCEPT = '.csv,.tsv,.xlsx,.xls'
 
 export default function SetupView({ onStarted }) {
   const start = useSession((s) => s.start)
@@ -122,7 +122,7 @@ export default function SetupView({ onStarted }) {
                 type="file"
                 accept={ACCEPT}
                 className="sr-only"
-                onChange={(e) => accept(e.target.files?.[0])}
+                onChange={(e) => { accept(e.target.files?.[0]); e.target.value = '' }}
               />
 
               {file ? (
@@ -203,7 +203,10 @@ export default function SetupView({ onStarted }) {
                   type="file"
                   accept=".txt,.md,.csv,.json,.pdf"
                   className="sr-only"
-                  onChange={(e) => setDataDict(e.target.files?.[0] ?? null)}
+                  onChange={(e) => {
+                    setDataDict(e.target.files?.[0] ?? null)
+                    e.target.value = ''
+                  }}
                 />
 
                 {dataDict ? (

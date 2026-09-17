@@ -20,6 +20,11 @@ openpyxl==3.1.2
 # ── Visualisation (A10) ───────────────────────────────────────────────────────
 plotly==5.20.0
 
+# ── Exports ───────────────────────────────────────────────────────────────────
+# Pure Python, no cairo/pango/headless browser, so the PDF export fits the same
+# small container as everything else. Imported lazily in main.py all the same.
+fpdf2==2.8.4
+
 # ── Model providers ───────────────────────────────────────────────────────────
 # Ollama is reached over plain HTTP, so it needs nothing beyond requests.
 requests==2.32.3

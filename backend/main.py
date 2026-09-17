@@ -17,6 +17,7 @@ Endpoints:
   GET  /api/sessions/{id}/telemetry  - Per-session agent/hypothesis/adversary events
   GET  /api/sessions/{id}/notebook   - Download the session as a Jupyter notebook
   GET  /api/sessions/{id}/export/report.html - Download a standalone HTML report
+  GET  /api/sessions/{id}/export/report.pdf  - Download a print-ready PDF report
   GET  /api/admin/telemetry/overview - Cross-session telemetry + failure patterns
   GET  /api/admin/prompt-versions    - A8's prompt evolution history
   GET  /api/health                   - Health check
@@ -31,7 +32,7 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
 from core.ledger import PipelineStage
@@ -182,6 +183,33 @@ def create_session():
     )
 
 
+def _assert_unused(ledger) -> None:
+    """
+    Refuse to run a second analysis over a ledger that has already been sealed.
+
+    Re-running one is not a harmless convenience. freeze() is a no-op once
+    is_frozen is set and add_hypothesis() rejects everything after it, so the
+    second run profiles the new table, has its proposals turned away, and then
+    tests the *previous* run's hypotheses against data they were never written
+    for. Every one errors, while the earlier run's statistical results and
+    report text stay attached to the entries and go on rendering. The reader
+    ends up looking at one dataset's name above another dataset's findings.
+
+    A frozen registry is the one thing this engine promises is immutable, so
+    the refusal is structural here rather than a convention the client is
+    trusted to keep.
+    """
+    if ledger.is_frozen or ledger.hypotheses:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "This session has already run and its registry is sealed. "
+                "Create a new session for a new analysis — a sealed registry "
+                "cannot be reused without invalidating the pre-registration."
+            ),
+        )
+
+
 @app.post("/api/sessions/{session_id}/upload")
 async def upload_and_analyze(
     session_id: str,
@@ -198,6 +226,7 @@ async def upload_and_analyze(
     ledger = session_store.get(session_id)
     if ledger is None:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    _assert_unused(ledger)
 
     # Read file bytes
     file_bytes = await file.read()
@@ -249,6 +278,7 @@ async def connect_google_sheet(session_id: str, request: ConnectSheetRequest):
     ledger = session_store.get(session_id)
     if ledger is None:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    _assert_unused(ledger)
 
     try:
         # Fetch file bytes and inferred filename from the connector
@@ -478,6 +508,45 @@ def export_report_html(session_id: str):
         raise HTTPException(status_code=400, detail="Nothing to export yet — run an analysis first.")
 
     return HTMLResponse(content=build_html(ledger))
+
+
+@app.get("/api/sessions/{session_id}/export/report.pdf")
+def export_report_pdf(session_id: str):
+    """
+    Download the analysis as a print-ready PDF.
+
+    fpdf2 is imported here rather than at module scope so that a container
+    without it still serves every other route — the export degrades to the HTML
+    one instead of taking the service down at boot.
+    """
+    ledger = session_store.get(session_id)
+    if ledger is None:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    if not ledger.hypotheses:
+        raise HTTPException(status_code=400, detail="Nothing to export yet — run an analysis first.")
+
+    try:
+        from exports.pdf_report import build_pdf, pdf_filename
+    except ImportError:
+        raise HTTPException(
+            status_code=503,
+            detail="PDF export is unavailable on this server. The HTML report has the same content.",
+        )
+
+    try:
+        payload = build_pdf(ledger)
+    except Exception as exc:                                   # pragma: no cover
+        logger.exception("PDF export failed for session %s", session_id)
+        raise HTTPException(status_code=500, detail=f"The PDF could not be rendered: {exc}")
+
+    return Response(
+        content=payload,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{pdf_filename(ledger)}"',
+            "Content-Length": str(len(payload)),
+        },
+    )
 
 
 # ─── Telemetry ────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  FileDown, NotebookPen, Link as LinkIcon, ShieldCheck, ShieldAlert,
+  FileDown, FileCode, NotebookPen, Link as LinkIcon, ShieldCheck, ShieldAlert,
   Search, SlidersHorizontal, Fingerprint,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -220,8 +220,11 @@ export default function DashboardView({ onNavigate }) {
               )}
             </div>
             <div className="flex gap-1.5">
+              <Button variant="secondary" size="sm" onClick={() => window.open(api.pdfUrl(sessionId), '_blank')}>
+                <FileDown size={13} /> PDF
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => window.open(api.reportUrl(sessionId), '_blank')}>
-                <FileDown size={13} /> HTML
+                <FileCode size={13} /> HTML
               </Button>
               <Button variant="ghost" size="sm" onClick={() => window.open(api.notebookUrl(sessionId), '_blank')}>
                 <NotebookPen size={13} /> Notebook

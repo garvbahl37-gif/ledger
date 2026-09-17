@@ -125,6 +125,7 @@ export const runMetaAgent      = () => request('/api/admin/meta-agent/run', { me
 
 export const notebookUrl = (id) => `${API_BASE}/api/sessions/${id}/notebook`
 export const reportUrl   = (id) => `${API_BASE}/api/sessions/${id}/export/report.html`
+export const pdfUrl      = (id) => `${API_BASE}/api/sessions/${id}/export/report.pdf`
 
 /* ─── SSE over POST ──────────────────────────────────────────────── */
 

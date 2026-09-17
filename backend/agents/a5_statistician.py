@@ -20,6 +20,7 @@ import pandas as pd
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
+from core.dtypes import is_measurement
 from core.ledger import (
     Ledger, HypothesisEntry, HypothesisStatus,
     StatisticalResult, AssumptionCheck, PipelineStage
@@ -270,8 +271,10 @@ def _select_and_run_test(
                 )
 
             a, b = paired[c1], paired[c2]
-            a_num = pd.api.types.is_numeric_dtype(a)
-            b_num = pd.api.types.is_numeric_dtype(b)
+            # Not is_numeric_dtype: an integer-coded category passes that and
+            # turns a group comparison into a correlation. See core.dtypes.
+            a_num = is_measurement(a)
+            b_num = is_measurement(b)
 
             # Both numeric → correlation.
             if a_num and b_num:

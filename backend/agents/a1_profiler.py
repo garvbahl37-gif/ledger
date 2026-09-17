@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from core.dtypes import is_effectively_categorical
 from core.ledger import Ledger, PipelineStage
 from observability.telemetry import timed_agent
 
@@ -105,6 +106,13 @@ def build_profile_json(df: pd.DataFrame) -> str:
         if pd.api.types.is_datetime64_any_dtype(s):
             col_info["type"] = "temporal"
             col_info.update(_temporal_stats(s))
+        elif is_effectively_categorical(s):
+            # Stored as a number, used as a label. Profiling it as numeric would
+            # put a mean and a standard deviation of Gender in front of the
+            # proposer and invite hypotheses that cannot mean anything.
+            col_info["type"] = "categorical"
+            col_info["numeric_coded"] = True
+            col_info.update(_categorical_stats(s))
         elif pd.api.types.is_numeric_dtype(s):
             col_info["type"] = "numeric"
             col_info.update(_numeric_stats(s))

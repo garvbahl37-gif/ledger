@@ -70,6 +70,19 @@ export const useSession = create((set, get) => ({
   ensureSession: async () => {
     const existing = get().sessionId
     if (existing) return existing
+    return get().newSession()
+  },
+
+  /**
+   * Mint a session for a run that is about to start.
+   *
+   * Every analysis gets its own, always. Reusing one looks harmless and is not:
+   * the registry is sealed at the end of a run, and a sealed ledger refuses new
+   * hypotheses while keeping the old ones, so a second table would be profiled
+   * and then measured against the first table's questions. The engine rejects
+   * that now as well — this side just never asks.
+   */
+  newSession: async () => {
     const { session_id } = await api.createSession()
     rememberSession(session_id)
     set({ sessionId: session_id })
@@ -140,13 +153,15 @@ export const useSession = create((set, get) => ({
     set({
       running: true, error: null, log: [], hypotheses: [], report: null,
       agents: idleAgents(), registryHash: null, frozen: false, abort: controller,
+      sessionId: null, telemetry: null, activeClaim: null, chat: [], sql: null,
+      expired: false, reportLoading: false,
       source: file
         ? { kind: 'file', name: file.name, size: file.size }
         : { kind: 'sheet', name: 'Connected sheet', size: null },
     })
 
     try {
-      const id = await get().ensureSession()
+      const id = await get().newSession()
       const onEvent = (evt) => get().applyEvent(evt)
       if (file) {
         await api.uploadAndStream(id, { file, dataDict, hypotheses, onEvent, signal: controller.signal })
