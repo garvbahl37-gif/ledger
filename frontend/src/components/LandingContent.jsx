@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useAnimation } from 'framer-motion';
 import NullTestChart from './charts/NullTestChart';
+import PipelineFilm from './PipelineFilm';
 import { 
   ArrowRight, Upload, ShieldCheck, Activity, Search, 
   Lock, BarChart2, FileSearch, Shield, RefreshCw, Database 
@@ -288,6 +289,8 @@ export default function LandingContent({ onEnter }) {
         </div>
       </section>
 
+
+      <PipelineFilm />
 
       {/* 4. PROBLEM STATEMENT */}
       <section id="the-problem" className="scroll-mt-[64px] bg-[#ffffff] py-[110px] px-[24px] w-full">
