@@ -183,6 +183,42 @@ def create_session():
     )
 
 
+# The ceiling the container can actually survive, enforced where the bytes
+# arrive. A0 checks this too, but by the time an agent runs the body has already
+# been pulled into memory in full, so a check there cannot prevent the
+# exhaustion it describes — it only reports it afterwards.
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", 40_000_000))
+_UPLOAD_CHUNK = 1 << 20
+
+
+async def _read_capped(upload: UploadFile, limit: int = MAX_UPLOAD_BYTES) -> bytes:
+    """
+    Read an upload, refusing past `limit` without buffering the whole body.
+
+    await upload.read() with no argument materialises the entire request, so a
+    file far larger than the instance can hold is fully resident before anything
+    gets to object to it. Reading in chunks and stopping at the limit means an
+    oversized upload costs one chunk more than the limit rather than all of it.
+    """
+    chunks, total = [], 0
+    while True:
+        chunk = await upload.read(_UPLOAD_CHUNK)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"This file is larger than the {limit / 1e6:.0f}MB this "
+                    f"deployment can hold in memory. Upload a subset, or drop "
+                    f"columns you are not testing."
+                ),
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 def _assert_unused(ledger) -> None:
     """
     Refuse to run a second analysis over a ledger that has already been sealed.
@@ -229,7 +265,7 @@ async def upload_and_analyze(
     _assert_unused(ledger)
 
     # Read file bytes
-    file_bytes = await file.read()
+    file_bytes = await _read_capped(file)
     filename = file.filename or "upload.csv"
 
     # Parse user hypotheses if provided
@@ -242,7 +278,7 @@ async def upload_and_analyze(
 
     # Ingest optional data dictionary for RAG
     if data_dict:
-        dict_bytes = await data_dict.read()
+        dict_bytes = await _read_capped(data_dict, 5_000_000)
         dict_content = dict_bytes.decode("utf-8", errors="replace")
         chunks = parse_document(dict_content, data_dict.filename or "dict.txt")
         rag_context = build_rag_context(chunks, query="column descriptions")
