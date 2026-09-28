@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { ShieldAlert, ShieldCheck, GitBranch, Ghost, TrendingUp, Globe } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import Markdown from '../Markdown'
 import { useSession } from '../../lib/store'
 import { Card } from '../ui/Card'
 import Button from '../ui/Button'
@@ -157,7 +158,9 @@ export default function AdversaryView({ onNavigate }) {
                       <p className="mt-3.5 text-[10.5px] font-medium tracking-wide text-slate">
                         WHY IT WAS FLAGGED
                       </p>
-                      <p className="mt-1 text-[13px] leading-relaxed text-graphite">{v.explanation}</p>
+                      <div className="mt-1 text-[13px] leading-relaxed text-graphite">
+                        <Markdown text={v.explanation} />
+                      </div>
                     </>
                   )}
                 </div>

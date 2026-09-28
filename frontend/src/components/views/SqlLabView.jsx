@@ -3,6 +3,7 @@ import { Terminal, Play, Workflow, Table2, AlertCircle } from 'lucide-react'
 import { useSession } from '../../lib/store'
 import { formatInt } from '../../lib/format'
 import CodeBlock from '../ui/CodeBlock'
+import Markdown from '../Markdown'
 import Mermaid from '../Mermaid'
 import Button from '../ui/Button'
 import { Card } from '../ui/Card'
@@ -112,7 +113,9 @@ export default function SqlLabView({ onNavigate }) {
               <h3 className="mb-2.5 text-[13px] font-semibold text-ink">The query</h3>
               <CodeBlock code={sql.sql_query} lang="sql" label="SQLite" />
               {sql.explanation && (
-                <p className="mt-3 text-[13px] leading-relaxed text-graphite">{sql.explanation}</p>
+                <div className="mt-3 text-[13px] leading-relaxed text-graphite">
+                  <Markdown text={sql.explanation} />
+                </div>
               )}
             </Card>
           )}
