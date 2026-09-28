@@ -15,6 +15,7 @@ export default function PlotlyChart({ spec, height = 340, className }) {
 
   useEffect(() => {
     let cancelled = false
+    let observer
     const node = ref.current
     if (!spec || !node) return
 
@@ -30,7 +31,7 @@ export default function PlotlyChart({ spec, height = 340, className }) {
             ...(spec.layout ?? {}),
             autosize: true,
             height,
-            margin: { l: 52, r: 20, t: spec.layout?.title ? 44 : 16, b: 44 },
+            margin: { l: 56, r: 34, t: spec.layout?.title ? 44 : 16, b: 48 },
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, system-ui, sans-serif', size: 11.5, color: '#334155' },
@@ -42,26 +43,56 @@ export default function PlotlyChart({ spec, height = 340, className }) {
           },
           { displayModeBar: false, responsive: true },
         )
-        if (!cancelled) setState('ready')
+        if (cancelled) return
+        setState('ready')
+
+        // The node is laid out during loading (opacity, not display:none), so
+        // Plotly measures a real width. This second pass covers the container
+        // settling after the skeleton is removed, and the observer covers a
+        // sidebar opening or the window changing later. Without it the figure
+        // keeps the width it was first given and the last category is cut off.
+        Plotly.Plots.resize(ref.current)
+        observer = new ResizeObserver(() => {
+          if (ref.current) Plotly.Plots.resize(ref.current)
+        })
+        observer.observe(ref.current)
       } catch {
         if (!cancelled) setState('error')
       }
     })()
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      observer?.disconnect()
+    }
   }, [spec, height])
 
   if (!spec) return null
 
   return (
-    <div className={className}>
-      {state === 'loading' && <Skeleton className="w-full" style={{ height }} />}
+    <div className={className} style={{ position: 'relative', minHeight: height }}>
+      {state === 'loading' && (
+        <Skeleton
+          className="absolute inset-0 w-full"
+          style={{ height }}
+        />
+      )}
       {state === 'error' && (
         <p className="px-3 py-8 text-center text-[12.5px] text-slate">
           This chart could not be drawn. The underlying numbers are still in the ledger.
         </p>
       )}
-      <div ref={ref} style={{ height, display: state === 'ready' ? 'block' : 'none' }} />
+      <div
+        ref={ref}
+        style={{
+          height,
+          // Laid out from the first render so Plotly has a real width to
+          // measure. Hiding it with display:none gave it a width of zero.
+          opacity: state === 'ready' ? 1 : 0,
+          transition: 'opacity .18s ease',
+          pointerEvents: state === 'ready' ? 'auto' : 'none',
+        }}
+      />
     </div>
   )
 }

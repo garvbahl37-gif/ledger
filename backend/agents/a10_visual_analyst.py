@@ -143,15 +143,28 @@ def _distribution_charts(df: pd.DataFrame) -> List[dict]:
     # Categorical distributions — bar charts
     for col in cat_cols[:8]:
         vc = df[col].value_counts().head(15)
-        fig = px.bar(
-            x=vc.index.astype(str),
-            y=vc.values,
-            title=f"Value Counts: {col}",
-            color=vc.values,
-            color_continuous_scale=[[0, PEARL], [1, ROYAL_BLUE]],
+        labels = [str(i) for i in vc.index]
+
+        # One solid colour, not a continuous colour axis. Mapping colour to the
+        # same number the bar height already encodes says nothing, and it costs
+        # three things: a "color=168" line in every tooltip, a colourbar that
+        # eats the right margin until the last category is clipped, and a
+        # legend that has to be switched off again afterwards.
+        fig = go.Figure(
+            go.Bar(
+                x=labels,
+                y=vc.values,
+                marker_color=ROYAL_BLUE,
+                hovertemplate=f"{col}=%{{x}}<br>count=%{{y}}<extra></extra>",
+            )
         )
-        _style(fig)
-        fig.update_traces(showlegend=False)
+        _style(
+            fig,
+            title=f"Value Counts: {col}",
+            showlegend=False,
+            xaxis_title=col,
+            yaxis_title="count",
+        )
         charts.append({"type": "categorical", "column": col, "spec": _to_json(fig)})
 
     return charts
